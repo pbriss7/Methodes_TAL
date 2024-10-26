@@ -449,12 +449,11 @@ exploration_clus_f(no_groupe = 3)
 
 
 # À partir de cette exploration, on pourrait se demander si, par exemple, la thématique d'un numéro de la revue a un effet sur le vocabulaire des textes.
-# On pourrait ajouter à l'identifiant unique de chaque document le thème du numéro, puis observer la classification hiérarchique pour voir si les textes sont réunis au sein des mêmes clusters.
-# On pourrait aussi, par exemple, ajouter une étiquette à chaque texte selon le sexe de l'auteur pour voir si la classification des textes, sur la base des contenus lexicaux, tend à suivre cette variable.
+# On pourrait ajouter à l'identifiant unique de chaque document le thème du numéro, puis observer la classification hiérarchique pour voir si les textes ont tendance à être réunis au sein des mêmes clusters.
 
 
-# Il faut noter enfin que la représentation du texte sous la forme de sac de mots ne permet pas de tirer le meilleur des algorithmes de regroupement. 
-# Cette représentation de la langue, le sac de mots, est insensible à la similarité sémantique aussi bien qu'à la polysémie de certains mots. 
+# En guise de conclusion, on notera que la représentation du texte sous la forme d'un sac de mots ne permet pas de tirer le meilleur des algorithmes de regroupement. 
+# Cette représentation de la langue, le sac de mots, est insensible à la similarité sémantique aussi bien qu'à la polysémie. 
 # "Chat" et "félin", comptés comme deux mots indépendants l'un de l'autre dans un BOW, ne sont pas éloignés du point de vue sémantique.
 # À l'opposé, "prendre un café" et "aller dans un café" renvoient à deux actions très différentes, mais le mot "café" sera compté comme un seul jeton dans un BOW. 
 
