@@ -452,23 +452,19 @@ exploration_clus_f(no_groupe = 3)
 # On pourrait ajouter à l'identifiant unique de chaque document le thème du numéro, puis observer la classification hiérarchique pour voir si les textes ont tendance à être réunis au sein des mêmes clusters.
 
 
-# En guise de conclusion, on notera que la représentation du texte sous la forme d'un sac de mots ne permet pas de tirer le meilleur des algorithmes de regroupement. 
-# Cette représentation de la langue, le sac de mots, est insensible à la similarité sémantique aussi bien qu'à la polysémie. 
-# "Chat" et "félin", comptés comme deux mots indépendants l'un de l'autre dans un BOW, ne sont pas éloignés du point de vue sémantique.
-# À l'opposé, "prendre un café" et "aller dans un café" renvoient à deux actions très différentes, mais le mot "café" sera compté comme un seul jeton dans un BOW. 
+# Rappelons en guise de conclusion les avantages et désavantages du regroupement hiérarchique:
+# Avantages :
+# Simplicité: méthode facile à comprendre et à implémenter.
+# Flexibilité: on n'a pas à préciser à l'avance un nombre défini de groupe.
+# Visualisation: le dendrogramme offre une représentation intuitive de la hiérarchie des groupes et permet d'observer les effets de la coupe de l'arbre sur la partition.
+# Dévoilement de structures sous-jacentes: il révèle des associations (horizontales et verticales ou ascendantes) entre documents qui ne sont pas forcément perceptibles à la lecture des textes.
+# Exploration: il s'agit d'une méthode d'exploration des données non supervisée, qui ne requiert pas une connaissance préalable de la collection de documents, mais qui suscite un retour actif aux textes.
 
-
-# Des représentations beaucoup plus fines de la langue ont été introduites au début des années 2010 avec Word2Vec. 
-# Des modèles comme le skip-gram et le CBOW, introduits en 2013 par Google, tirent profit des séquences de mots (mais ignorent encore les contextes larges et les mots éloignés).
-# Les plus grandes avancées ont été faites dans la deuxième moitié des années 2010 avec l'arrivée des modèles de langue préentrainés sur de grandes quantités de textes.
-# Les modèles de type BERT (Bidirectional Encoder Representations from Transformers), introduits par Google en 2018, tiennent compte du contexte des mots aussi bien que de leur position dans la phrase.
-# Ils sont capables de saisir des relations entre des mots éloignés les uns des autres dans un texte aussi bien que de saisir les relations entre les mots dans une même phrase.
-# Ces modèles d'embeddings n'ont pas complètement résolu les problèmes d'ambiguïté sémantique évoqués ci-dessus, 
-# mais leur capacité à saisir des nuances et relations latentes dans des textes a significativement augmenté et permis l'amélioration de plusieurs tâches du TAL (classification, traduction automatique, génération de texte).
-
-# Pour en apprendre davantage sur l'évolution des modèles de langage, voir https://dr-arsanjani.medium.com/the-evolution-of-text-embeddings-75431139133d.
-
-# Voir également l'article fondateur du modèle BERT publié en 2018 par Delvin et al, https://arxiv.org/abs/1810.04805. 
+# Désavantages
+# Perte d'information: parce que l'algorithme associe chaque document à un seul groupe, il y a une importante perte d'information: seuls ressortent les éléments les plus visibles ou caractéristiques de chaque groupe.
+# Pas de probabilités: l'algorithme ne permet pas de savoir quelles sont les probabilités que tel document appartienne à tel groupe.
+# Contrairement à l'algorithme du K-moyenne, on ne sait pas quel(s) document(s) sont plus centraux dans les groupes.
+# Sensibilité à l'ordre des données: l'ordre dans lequel les données sont traitées peut influencer la structure du dendrogramme.
 
 
 
