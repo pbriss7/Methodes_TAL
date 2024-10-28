@@ -100,7 +100,7 @@ xyz_pos_annote <- xyz_pos_annote[upos %in% c('VERB','NOUN','ADJ','ADV','PROPN')]
 xyz_pos_annote <- xyz_pos_annote[,
                                  .(token = list(token), 
                                    lemma = list(lemma)
-                                   ),
+                                 ),
                                  by = .(doc_id)]
 
 # Observons et sauvegardons cette structure de données nettoyée.
@@ -166,7 +166,7 @@ str(xyz_dtm)
 matriceRequete <- matrix(data = 0,
                          nrow = 1, 
                          ncol =  ncol(xyz_dtm)
-                         )  
+)  
 
 
 # On ajoute maintenant à ce vecteur les noms de colonnes de la matrice documents-mots.
@@ -254,9 +254,9 @@ pattern <- regex(".{0,50}trahir?.{0,50}", ignore_case = TRUE, dotall = TRUE)
 
 # Avec la boucle suivante, on crée un concordancier très simple utilisant cette expression.
 for (i in nrow(docs_significatifs_dt)) {
-
+  
   kwic_temp <- unlist(str_extract_all(docs_significatifs_dt$texte, pattern))
-
+  
   print(kwic_temp)
 }
 
@@ -465,7 +465,3 @@ exploration_clus_f(no_groupe = 3)
 # Pas de probabilités: l'algorithme ne permet pas de savoir quelles sont les probabilités que tel document appartienne à tel groupe.
 # Contrairement à l'algorithme du K-moyenne, on ne sait pas quel(s) document(s) sont plus centraux dans les groupes.
 # Sensibilité à l'ordre des données: l'ordre dans lequel les données sont traitées peut influencer la structure du dendrogramme.
-
-
-
-
