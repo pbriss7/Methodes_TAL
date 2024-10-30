@@ -447,7 +447,7 @@ exploration_clus_f <- function(no_groupe, nbre_mots_nuage=50) {
     )
   )
 }
-exploration_clus_f(no_groupe = 3)
+exploration_clus_f(no_groupe = 6)
 
 # Utilisez la fonction pour explorer les groupes. Modifiez le nombre de `k`, recomposez de nouveaux groupes et explorez-les à nouveau avec la fonction de visualisation.
 
