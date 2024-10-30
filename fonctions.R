@@ -29,6 +29,8 @@ pretraitement_f <- function(chaine,
     chaine <- gsub(pattern = "[[:punct:]]+", replacement = " ", chaine, perl = TRUE)
   } 
   
+  chaine <- gsub(pattern = "’", " ", fixed = TRUE, chaine)
+  
   # Suppression des nombres si demandé
   if (enlever_nombres) {
     chaine <- gsub(pattern = "[0-9]+", replacement = " ", chaine, perl = TRUE)

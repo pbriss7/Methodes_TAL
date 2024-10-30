@@ -3,7 +3,7 @@
 ##########################################################################
 
 # On a déjà parlé du modèle vectoriel et de son importance dans la recherche d'information et les tâches de classification.
-# L'atelier qui suit vise à implémenter un tel espace avec les documents composant le corpus XYZ, et à voir ce qu'on peut en tirer.
+# L'atelier qui suit vise à créer un tel espace avec les documents composant le corpus XYZ, et à voir ce qu'on peut en tirer.
 
 #### L'espace vectoriel ----
 # En contexte d'analyse de données textuelles, le modèle d'espace vectoriel est un concept mathématique qui permet de représenter chaque document d'une collection comme un vecteur numérique.
@@ -11,13 +11,13 @@
 # Soit, par exemple, les "documents" suivants:
 # 1. "Je mange"; 2. "Je marche"; 3. "Il marche".
 # Si j'utilise le modèle simple du BOW, chaque document sera représenté comme un vecteur comportant chacun quatre nombres entiers.
-# [1, 1, 0, 0] pour "Je mange", [1, 0, 1, 0] pour "Je marche" et [0, 0, 1, 1] pour "Il marche"
-# Dans l'espace vectoriel, les trois documents seront situés les uns par rapport aux autres en fonction de ces quatre dimensions ("Je", "mange", "marche" "Il").
+# [1, 1, 0, 0] pour "Je mange", [1, 0, 1, 0] pour "Je marche" et [0, 0, 1, 1] pour "Il marche".
+# Dans l'espace vectoriel, les trois documents seront situés les uns par rapport aux autres en fonction de ces quatre dimensions ("Je", "mange", "marche", "Il").
 # L'espace vectoriel peut contenir des dizaines, voire des centaines de milliers de dimensions.
 # L'humain n'est pas capable de se représenter un tel espace, mais d'un point de vue mathématique, cela ne pose aucun problème.
 
 # Pourquoi se donner tant de mal et recourir à ce concept mathématique? 
-# Comme tout espace vectoriel, celui qui représente une collection de documents est régi par l'algèbre linéaire, donc par des lois mathématiques.
+# Comme tout espace vectoriel, celui qui représente une collection de documents est régi par les règles de l'algèbre linéaire, donc par des lois mathématiques.
 # La "proximité" entre les documents, dans l'espace vectoriel, est utilisée comme une mesure de leur similarité sémantique.
 # Les mesures qui peuvent être utilisées pour évaluer cette proximité sont multiples (cosinus, euclidienne, jaccard, Manhattan, etc.).
 # La plus utilisée est la mesure cosinus, qui utilise l'angle entre deux vecteurs pour déterminer leur degré de similitude. 
@@ -29,8 +29,8 @@
 
 
 #### Chargement des fonctions personnelles ----
-# L'exécution de la commande suivante importera dans l'environnement deux fonctions contenues dans le script "fonctions.R".
-# Ces fonctions sont "inst_ext_f()" et "pretraitement_f()".
+# L'exécution de la commande suivante importera dans l'environnement trois fonctions contenues dans le script "fonctions.R".
+# Ces fonctions sont inst_ext_f(), pretraitement_f() et calcul_tfidf_f().
 # Pour voir leur composition, ouvrez le fichier "fonctions.R" ou exécutez le nom des fonctions.
 
 #### Installation et activation des extensions 
@@ -59,16 +59,16 @@ rm(list = setdiff(ls(), c("pretraitement_f", "calcul_tfidf_f")))
 xyz_dt <- readRDS("donnees/xyz_enrichie_rich_lex.RDS")
 
 # Petit nettoyage des textes
-xyz_dt[, texte := gsub("’", "'", fixed = TRUE, texte)]
-xyz_dt[, texte := gsub("|", " ", fixed = TRUE, texte)]
+xyz_dt[, texte := gsub("’", "'", fixed = TRUE, texte)] # Ce type d'apostrophe n'est pas saisi par les motifs de ponctuation des expressions régulières.
+xyz_dt[, texte := gsub("|", " ", fixed = TRUE, texte)] # Dans la table d'origine, le symbole "|" a été utilisé pour signaler un saut de paragraphe.
 
 # Annotation morphosyntaxique du jeu de données avec udpipe
-chemin_modele <- "modele_langage/french-gsd-ud-2.5-191206.udpipe"
-if(!file.exists(chemin_modele)) {
-  udpipe_download_model(chemin_modele)
-}
-
-modele <- udpipe_load_model(chemin_modele)
+# chemin_modele <- "modele_langage/french-gsd-ud-2.5-191206.udpipe"
+# if(!file.exists(chemin_modele)) {
+#   udpipe_download_model(chemin_modele)
+# }
+# 
+# modele <- udpipe_load_model(chemin_modele)
 
 
 # L'opération d'annotation qui suit prend plusieurs minutes et on va donc importer le jeu de donnée déjà annoté et enregistré dans le sous-dossier `donnees/`
@@ -83,7 +83,7 @@ modele <- udpipe_load_model(chemin_modele)
 xyz_pos <- readRDS("donnees/xyz_pos.RDS")
 
 # On allège la structure de l'objet en ne conservant que les colonnes d'intérêt pour notre tâche
-xyz_pos_annote <- xyz_pos[, .(doc_id, token, lemma, upos)]
+xyz_pos_annote <- xyz_pos[, .(doc_id,lemma, upos)]
 
 xyz_pos_annote[1]
 
@@ -94,12 +94,10 @@ xyz_pos_annote <- xyz_pos_annote[upos %in% c('VERB','NOUN','ADJ','ADV','PROPN')]
 # Ci-dessous, on transforme la structure udpipe en une table de 564 lignes, une ligne par document, avec trois colonnes. 
 # Ces colonnes correspondent à: 
 # 1) l'identifiant unique de chaque document;
-# 2) une liste comprenant tous les mots (tokens) de ce document;
-# 3) une liste comprenant tous les lemmes correspondants.
+# 2) une liste comprenant tous les mots (lemmes) de ce document.
 
 xyz_pos_annote <- xyz_pos_annote[,
-                                 .(token = list(token), 
-                                   lemma = list(lemma)
+                                 .(lemma = list(lemma)
                                  ),
                                  by = .(doc_id)]
 
@@ -146,10 +144,12 @@ xyz_dtm <- text2vec::create_dtm(iter,
                                 vectorizer,
                                 type = "dgCMatrix")
 
-saveRDS(xyz_dtm, 'donnees/xyz_dtm.RDS')
+# saveRDS(xyz_dtm, 'donnees/xyz_dtm.RDS')
+
+# L'opération ayant déjà été faite, vous pouvez importer seulement le produit final:
 xyz_dtm <- readRDS('donnees/xyz_dtm.RDS')
 
-# L'objet produit est une matrice compressée ("dgC" pour "digital", "general" et "compressed, column oriented"), moins lourde qu'une matrice de base.
+# L'objet généré par les opérations qui précèdent est une matrice compressée ("dgC" pour "digital", "general" et "compressed, column oriented"), moins lourde qu'une matrice de base.
 str(xyz_dtm)
 
 
@@ -159,7 +159,6 @@ str(xyz_dtm)
 # Ses dimensions seront donc de [1, 8736]. Le chiffre 8736 correspond au nombre de colonnes (lemmes) de la matrice documents-mots
 # Les noms de colonnes de cette matrice requête seront les mêmes que ceux de la matrice documents-mots. Ces noms, on s'en souvient, sont les lemmes uniques du vocabulaire des documents.
 # Nous allons d'abord remplir cette matrice requête de zéros, puis nous indiquerons la valeur "1" seulement là où les mots de la requête coïncident avec le lemme (nom de colonne) correspondant de la matrice documents-mots.
-
 
 # Créons tout d'abord la matrice requête de même longueur que notre matrice documents-mots.
 
@@ -184,7 +183,7 @@ str(matriceRequete)
 
 
 # Dans l'étape qui suit, nous allons construire une requête, c'est-à-dire que nous allons choisir les mots d'une requête qui nous permettront de trouver, parmi les documents de la matrice documents-mots, ceux qui correspondent le mieux à cette requête.
-# Il faut que les termes de notre requête soient présents dans la matrice documents-mots, qu'ils figurent quelque part dans les noms de colonnes.
+# Il faut que les termes de notre requête soient présents dans la matrice documents-mots, c'est-à-dire qu'ils figurent quelque part dans les noms de colonnes.
 # Pour construire notre requête, nous allons utiliser un motif, une expression régulière qui pourrait saisir ou attraper plus d'un nom de colonne à la fois.
 
 # Notre première requête sera simple: on attrapera les colonnes de la matrice correspondant à une variation de "trahi".
@@ -196,7 +195,7 @@ matriceRequete[1, grep(motifRequete, colnames(matriceRequete))] <- 1
 # On peut examiner les mots (noms de colonnes) ainsi attrapés:
 matriceRequete[1, matriceRequete[1,] > 0]
 
-# Pour comprendre la prochaine étape, il faut se représenter chaque document de la matrice documents-mots comme un vecteur dont les valeurs (pondérées et/ou normalisées) déterminent une direction dans l'espace vectoriel de 8736 dimensions.
+# Pour comprendre la prochaine étape, il faut se représenter chaque document de la matrice documents-mots comme un vecteur dont les valeurs déterminent une direction dans l'espace vectoriel de 8736 dimensions.
 # Les vecteurs peuvent être de différentes longueurs, mais ils ont tous la même origine, partent tous du même point.
 # En créant une matrice requête, nous construisons un vecteur qui prendra position dans l'espace vectoriel à partir du même point d'origine.
 # La mesure de similarité cosinus utilisée pour déterminer la proximité sémantique de la requête et des documents utilise l'angle cosinus formé depuis le point d'origine entre le vecteur requête et un vecteur document (une ligne de la matrice documents-mots).
@@ -288,6 +287,7 @@ wordcloud2(data.frame(
 
 
 #### Similarité documentaire ----
+# On cherchera maintenant, à l'aide de notre matrice Documents-mots, à repérer les documents les plus similaires.
 
 # Nettoyons d'abord notre environnement:
 rm(list = setdiff(ls(), c("xyz_dtm", "pretraitement_f", "calcul_tfidf_f", "xyz_dt")))
@@ -295,7 +295,7 @@ rm(list = setdiff(ls(), c("xyz_dtm", "pretraitement_f", "calcul_tfidf_f", "xyz_d
 # Nous allons appliquer une pondération TF-IDF aux valeurs de la matrice:
 xyz_dtm_tfidf <- calcul_tfidf_f(as.matrix(xyz_dtm))
 
-# Aperçu du résultat:
+# Aperçu du résultat pour le document 2:
 xyz_dtm_tfidf[2, xyz_dtm_tfidf[ 2, ] > 0 ]
 
 
@@ -313,10 +313,14 @@ xyz_dtm_tfidf_norm[1, xyz_dtm_tfidf_norm[ 1, ] > 0 ]
 # Calculer les valeurs de similarité entre chaque paire de documents:
 xyz_sim_m <- as.matrix(simil(xyz_dtm_tfidf_norm, method = "cosine"))
 
-# Aperçu du résultat:
+# Le résultat est une matrice carrée Documents-documents ayant 564 lignes et 564 colonnes.
+# Les mots n'apparaissent plus dans cette matrice.
+# Au croisement de chaque ligne et de chaque colonne, la valeur indique la proximité sémantique du document en ligne et du document en colonne.
+str(xyz_sim_m)
 xyz_sim_m[1:3, 1:3]
+# La diagonale est remplie de zéros, montrant l'identité parfaite d'un document avec lui-même (ex.: document "97693" en ligne et document "97693" en colonne).
 
-# Fonction pour obtenir l'indice du document le plus similaire
+# On peut fabriquer une fonction pour obtenir l'indice du document le plus similaire
 obtenir_doc_simil_f <- function(doc_index, matrice_simil) {
   
   # Extraire la ligne correspondant au document donné:
@@ -356,7 +360,7 @@ cat("Le document le plus similaire au document 1 est le document", resultat$doc_
 # Un dendogramme classique ressemble à un arbre renversé. À la base se trouvent les documents (feuilles) et tout en haut, le tronc (agglomération totale de tous les documents).
 # On pourra alors couper l'arbre à une certaine auteur pour obtenir un nombre donné de groupes.
 
-# Le regroupement hiérarchique est une méthode de classification non supervisée qui permet d'explorer des structures cachées d'un jeu de données (textuelles).
+# Le regroupement hiérarchique est une méthode descriptive et non supervisée (voir Forest, 2009) qui permet d'explorer des structures cachées d'un jeu de données (textuelles).
 # Il est utilisé dans toutes sortes de domaines (biologie, marketing, histoire de l'art). 
 # En littérature et plus généralement dans les sciences du langage, il a fréquemment été utilisé pour explorer les thèmes d'une collection documentaire ou encore pour regrouper des auteurs selon le contenu de leurs œuvres.
 
@@ -460,8 +464,16 @@ exploration_clus_f(no_groupe = 3)
 # Dévoilement de structures sous-jacentes: il révèle des associations (horizontales et verticales ou ascendantes) entre documents qui ne sont pas forcément perceptibles à la lecture des textes.
 # Exploration: il s'agit d'une méthode d'exploration des données non supervisée, qui ne requiert pas une connaissance préalable de la collection de documents, mais qui suscite un retour actif aux textes.
 
-# Désavantages
+# Désavantages:
 # Perte d'information: parce que l'algorithme associe chaque document à un seul groupe, il y a une importante perte d'information: seuls ressortent les éléments les plus visibles ou caractéristiques de chaque groupe.
 # Pas de probabilités: l'algorithme ne permet pas de savoir quelles sont les probabilités que tel document appartienne à tel groupe.
-# Contrairement à l'algorithme du K-moyenne, on ne sait pas quel(s) document(s) sont plus centraux dans les groupes.
+# Contrairement à l'algorithme du K-moyenne (regroupement à plat), on ne sait pas quel(s) document(s) sont plus centraux dans les groupes.
 # Sensibilité à l'ordre des données: l'ordre dans lequel les données sont traitées peut influencer la structure du dendrogramme.
+
+# Pour aller plus loin:
+# Dominic Forest, "Vers une nouvelle génération d'outils d'analyse et de recherche d'information", Documentation et bibliothèques, vol. 55, no 2, avril-juin 2009. Doi: https://www.erudit.org/fr/revues/documentation/2009-v55-n2-documentation01751/1029091ar/
+# Matthew L. Jockers et Rosamond Thalken, "Clustering", Text Analysis with R, Springer International Publishing, 2020, p. 177‑94. DOI.org (Crossref), https://doi.org/10.1007/978-3-030-39643-5_15.
+
+
+
+
