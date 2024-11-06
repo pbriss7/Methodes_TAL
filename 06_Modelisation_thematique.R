@@ -16,7 +16,6 @@
 # Partant de ces deux hypothèses, l’algorithme identifie les mots les plus représentatifs d’un thème et évalue la part de chaque thème dans chaque document. 
 # Une fois l'évaluation terminée et les proportions calculées, on peut obtenir les mots les plus probables de chaque thème et les documents qui contribuent le plus à ces thèmes.
 
-### Sac de Mots (BoW) et Embeddings
 # Pour construire ce modèle, nous utilisons ci-dessous une représentation simple du texte, de type « Bag of Words » (sac de mots).
 
 
@@ -47,7 +46,7 @@ rm(list = ls())
 xyz_enrichie_rich_lex <- readRDS("donnees/xyz_enrichie_rich_lex.RDS")
 
 #### Vectorisation et création d'une matrice Documents-mots ----
-# Pour construire notre premier modèle thématique, nous allons utiliser les lemmes de chaque nouvelle (document).
+# Pour construire notre modèle thématique, nous allons utiliser les lemmes de chaque nouvelle (document).
 # Les lemmes que nous retiendrons sont les noms (communs et propres), les adjectifs et les verbes.
 # L'ensemble du corpus XYZ a déjà été annoté avec udpipe et le modèle de language "french-gsd". 
 # Nous allons importer cette structure de données pour éviter d'avoir à refaire l'opération d'annotation, longue et coûteuse:
@@ -67,7 +66,7 @@ xyz_pos_annote <- xyz_pos_annote[upos %in% c('VERB','NOUN','ADJ', 'PROPN')]
 xyz_pos_annote <- xyz_pos_annote[,
                                  .(lemma = list(lemma)
                                  ),
-                                 by = .(doc_id)]
+                                 by = doc_id]
 
 # Visualisation de la structure de données:
 xyz_pos_annote
@@ -113,10 +112,12 @@ xyz_dtm <- readRDS("donnees/dtm4topicModels.RDS")
 # On peut visualiser les mots du premier document:
 xyz_dtm[1 , xyz_dtm[1 ,] > 0]
 
-# Nous allons maintenant créer notre premier modèle thématique, composé de 12 groupes (c'est un paramètre qu'il faut fournir dès le départ):
+# Nous allons maintenant créer notre premier modèle thématique, composé de 12 groupes (c'est un paramètre qu'il faut fournir dès le départ).
+# Note: l'opération suivante prend quelques minutes. Vous pouvez donc la passer et importer l'objet que j'ai préalablement sauvegardé dans le dossier `resultats`
 lda_model <- topicmodels::LDA(xyz_dtm, k = 12, control = list(seed = 1234))
 
 
+#### Visualisation du modèle thématique ----
 # Il y a plusieurs manières de visualiser le résultat. Le plus intéressant outil de visualisation est à mon avis LDAViz, créé par Sievert et Shirley (2014).
 # Cet outil permet de visualiser plusieurs aspects du modèle thématique de manière parallèle:
 # -- La distribution des thèmes sur un plan en deux dimensions (réduction dimensionnelle): les thèmes qui partagent un ou plusieurs termes sont voisins, tandis que les thèmes sémantiquement distants sont situés dans des quadrants opposés;
@@ -142,12 +143,14 @@ json_lda_12 <- createJSON(
   term.frequency = term_frequency
 )
 
+
+# if(!dir.exists("resultats")) {dir.create("resultats")}
+# saveRDS(json_lda_12, "resultats/topicModel_12k.RDS")
+json_lda_12 <- readRDS("resultats/topicModel_12k.RDS")
+
 # L'exécution de la ligne suivante va susciter l'affichage du module de visualisation à la droite.
 serVis(json_lda_12)
 
-# Sauvegarde du modèle.
-if(!dir.exists("resultats")) {dir.create("resultats")}
-saveRDS(json_lda_12, "resultats/topicModel_12k.RDS")
 
 # Le modèle thématique proposé ci-dessus utilise tous les documents de la collection XYZ. 
 # On pourrait sélectionner une partie seulement de ces documents, comme les nouvelles écrites seulement par les femmes, ou celles d'un dossier thématique en particulier, ou encore celles publiées avant ou après une certaine date.
@@ -204,10 +207,10 @@ FindTopicsNumber_plot(result)
 
 # Le diagramme donne à penser que les valeurs 5, 7, 8, 14, 18 et 20 seraient intéressantes à explorer.
 # Voyons le modèle à 18 topiques.
-# À nouveau, vous pouvez passer cette étape en important simplement le résultat du processus en exécutant la ligne suivante:
+# À nouveau, vous pouvez passer cette étape et importer simplement le résultat du processus en exécutant la ligne suivante:
 json_lda <- readRDS("resultats/topicModel_14k.RDS")
 
-lda_model <- topicmodels::LDA(xyz_dtm, k = 14, control = list(seed = 1234))
+# lda_model <- topicmodels::LDA(xyz_dtm, k = 14, control = list(seed = 1234))
 
 
 phi <- posterior(lda_model)$terms
