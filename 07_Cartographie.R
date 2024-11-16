@@ -2,12 +2,17 @@
 #### Cartographie littéraire  ####
 ##################################
 
-# Le script ci-dessous est autonome, c'est-à-dire qu'il importera les objets traités ailleurs et ne devrait pas renvoyer d'erreur.
-# Cependant, le travail de géoanalyse (geoparsing) et de géoréférencement (geocoding) a été fait avec Python et la bibliothèque Perdido.
+# Dans les lignes qui suivent, on procède à la projection cartographique des lieux nommés dans la nouvelle "Le labyrinthe" de Louise Dupré.
+# Cette opération comporte quatre principales étapes:
+# 1) Importation dans l'environnement et prétraitement du texte et de son identifiant unique;
+# 2) Géoanalyse du texte, c'est-à-dire le repérage des noms de lieux dans le texte; cette opération est menée avec un modèle de langage préentrainé, "fr_core_news_lg" (https://spacy.io/models/fr#fr_core_news_lg)
+# 3) Géoréférencement, c'est-à-dire l'obtention des coordonnées GPS (latitude et longitude) des lieux repérés. Cette opération est faite avec l'API Nominatim.
+# 4) Révision des résultats et projection des lieux sur une carte du monde. 
 
-# La géoanalyse de texte ("geoparsing") est une tâche associée à la reconnaissance d'entités nommées ("named entity recognition"). 
-# Cette tâche, qui relève du TAL, consiste à identifier et à classifier automatiquement les entités mentionnées dans un texte en catégories prédéfinies, telles que les noms de personnes, de lieux, d'organismes, les dates, les adresses électroniques, etc. 
+# Les étapes 1 et 4 sont faites ici avec R.
+# Les étapes 2 et 3 sont faites dans le carnet jupyter 07_Geoanalyse.ipynb.
 
+# Les résultats des étapes 2 et 3 ont été enregistrés dans le sous-dossier "donnees", de sorte que le présent script peut être exécuté de manière autonome.
 
 source("fonctions.R")
 
