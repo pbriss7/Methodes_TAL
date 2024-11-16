@@ -1,0 +1,363 @@
+---
+lang: fr
+title: "Introduction aux expressions régulières"
+author: "Pascal Brissette"
+date: "2024-09-20"
+format:
+  html:
+    toc: true
+    toc-depth: 2
+    toc-location: left
+    theme: Journal
+    self-contained: true
+    reference-location: margin
+    title-block-banner: true
+editor: visual
+---
+
+```{r activation des modules}
+#| output: false
+#| echo: false
+#| comment: false
+
+inst_ext_fun <- function(extension) {
+  if(!extension %in% rownames(installed.packages())) {
+    install.packages(extension, dependencies = TRUE)
+  }
+  require(extension, character.only = TRUE)
+}
+
+extensions <- c("stringr",
+                "gutenbergr")
+
+sapply(extensions, inst_ext_fun)
+
+# Nettoyage de l'environnement
+rm(list = ls())
+
+```
+
+# Le couteau suisse des chercheur·euse·s en sciences humaines
+
+Dans le bagage des chercheuses et chercheurs en sciences humaines et sociales, habitué·e·s à travailler avec des textes, les expressions régulières constituent un couteau suisse d'une grande utilité qui permettra de trouver, d'extraire, de filtrer ou de remplacer des mots ou expressions variées dans un ou plusieurs textes. L'atelier va permettre de se familiariser avec cet outil.
+
+Si vous faites l'atelier dans un environnement de programmation comme RStudio (Posit ou [Posit Cloud](https://posit.cloud/)), vous pourrez exécuter les lignes de code et observer le résultat. Si vous consultez la version "html" du document, le code aura au préalable été exécuté et vous pourrez observer le résultat.
+
+# Origine et utilité des expressions régulières
+
+Les expressions régulières sont issues des travaux de Stephen Cole Kleene (1909-1994), mathématicien américain contemporain d'Alan Turing, dans le domaine des mathématiques formelles, et plus exactement de la théorie des automates. Elles sont mises à profit dès les années 1960 dans le repérage de motifs dans des textes et ont été utilisées dans les langages de programmation et les systèmes d'exploitation.
+
+Dans les études littéraires, les expressions régulières peuvent servir à extraire des noms d'entités ou des expressions très précises, avec une ou plusieurs conditions. On peut également les utiliser pour corriger des textes comportant des erreurs (pensons à des textes qui ont été océrisés). Comme on le verra ci-dessous, on s'en sert couramment en conjonction avec des fonctions de recherche pour structurer l'information des textes et pour les traiter ensuite avec les outils du TAL. Elles sont la pierre angulaire de cette partie du travail que l'on appelle le "prétraitement".
+
+------------------------------------------------------------------------
+
+# Principes et opérateurs de base
+
+Les expressions régulières sont des séquences de caractères (lettres, ponctuations, symboles) qui forment des motifs permettant de trouver d'autres séquences de caractères dans des textes.
+
+Définition proposée par ChatGPT:
+
+> Une **expression régulière** (ou **regex**, pour “regular expression” en anglais) est une séquence de caractères qui définit un **motif** utilisé pour rechercher \[...\] ou manipuler des chaînes de caractères dans du texte. Autrement dit, c’est un outil puissant qui permet de spécifier des règles pour trouver des fragments de texte qui respectent certaines conditions. Les expressions régulières sont largement utilisées dans divers domaines comme la programmation, le traitement de texte, l’analyse de données et l’automatisation. (OpenAI, ChatGPT-4o, version 21 sept. 2024)
+
+Une expression régulière peut prendre la forme exacte d'un mot ou d'une expression en langage naturel. Par exemple, "Montréal" attrapera très exactement cette chaîne précise de caractères dans un texte, "Montréal", mais le motif saisira également "Montréalais", "Montréalaise" et "Montréalaises", à moins que vous n'ajoutiez une balise de fin de mot: "Montréal\\b". Dans cette dernière expression, les deux barres diagonales indiquent au logiciel que "b" est un opérateur, une balise de mot. Dans la plupart des langages de programmation, une seule barre est utilisée. Les deux barres sont spécifiques à R, où elles servent à "échapper" l'opérateur d'échappement lui-même...
+
+Voici quelques-uns des symboles et opérateurs les plus communs:
+
++--------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+--------+
+| # Expression | # Description                                                                                                                                                                                                                                     | # Éléments saisis et exemples                                                                                                                                                                                                                                                                                         |        |
+|              |                                                                                                                                                                                                                                                   |                                                                                                                                                                                                                                                                                                                       |        |
+| `a, b, c…`   | L'expression saisit la lettre ou le chiffre tel qu'il est exprimé.                                                                                                                                                                                | "a", "b", "c",                                                                                                                                                                                                                                                                                                        |        |
+|              |                                                                                                                                                                                                                                                   |                                                                                                                                                                                                                                                                                                                       |        |
+| `A, B, C…`   |                                                                                                                                                                                                                                                   | "A", "B", "C"                                                                                                                                                                                                                                                                                                         |        |
+|              |                                                                                                                                                                                                                                                   |                                                                                                                                                                                                                                                                                                                       |        |
+| `1, 2, 3`    |                                                                                                                                                                                                                                                   | "1", "2", "3"                                                                                                                                                                                                                                                                                                         |        |
++--------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+--------+
+|              |                                                                                                                                                                                                                                                   |                                                                                                                                                                                                                                                                                                                       |        |
++--------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+--------+
+| `\\b`        | Balise de mot                                                                                                                                                                                                                                     | L'expression `jour` saisira aussi bien le mot "jour" que "au**jour**d'hui", tandis que `\\bjour\\b` ne saisira que le mot "jour" au singulier, tout en minuscules. \|                                                                                                                                                 |        |
++--------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+--------+
+| `\\w`        | N'importe quel caractère d'un mot                                                                                                                                                                                                                 | `\\w` saisira une seule lettre d'une séquence de lettres encadrée de blancs typographiques ou de ponctuations. Pour le dire plus simplement, le motif saisira la première lettre d'un mot. Par exemple, la commande `str_extract("Victor Hugo", "\\w")`, retournera seulement la première lettre du premier mot, "V". |        |
++--------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+--------+
+| `\\s`        | Une espace (simple ou tabulation)                                                                                                                                                                                                                 | `\\s` saisira une espace, une seule, à moins d'être suivie de l'opérateur `+`. Ainsi, `strsplit("Victor Hugo", "\\s")` séparera le prénom et le nom et retournera une liste comprenant les deux éléments. \|                                                                                                          |        |
++--------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+--------+
+| `.`          | N'importe quel caractère (lettre, chiffre, ponctuation, espace simple), une seule fois.                                                                                                                                                           | `\\bMontr.al\\b` saisirait le mot "Montréal", "Montreal", mais également "Montrial", "Montr'al", "Montr al", etc. Très pratique pour saisir dans un texte des mots dont on soupçonne qu'ils pourraient avoir été orthographiés de différentes manières. \|                                                            |        |
++--------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+--------+
+| `\\.`        | Un point, tout simplement. Les deux barres transversales inversées annulent la fonction spéciale accordée autrement au point.                                                                                                                     | La commande `str_replace_all(string = "Je mange.", pattern = "\\.", replacement = "!")` retournera "Je mange!", mais `str_replace_all(string = "Je mange", pattern = ".", replacement = "!")` retournera "!!!!!!!!" \|                                                                                                |        |
++--------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+--------+
+| `?`          | Cet opérateur est un quantifieur "paresseux" (*lazy quantifier*).                                                                                                                                                                                 | Opérateur très utile pour indiquer que, dans une expression, une lettre ou un symbole est facultatif. Par exemple `\\bMontréalaise?\\b` saisira aussi bien "Montréalais" que "Montréalaise". Le caractère `?` rend facultatif le "e" qui précède l'opérateur. \|                                                      |        |
++--------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+--------+
+| `\\?`        | Un point d'interrogation, tout simplement                                                                                                                                                                                                         | Le point d'interrogation est ici "échappé" par les barres diagonales.                                                                                                                                                                                                                                                 |        |
++--------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+--------+
+| `+`          | Cet opérateur est un quantifieur gourmand (*greedy quantifier*).                                                                                                                                                                                  | `Ah+` saisira "Ah", mais aussi "Ahh", "Ahhh", et ainsi de suite, jusqu'à ce que la fonction de recherche trouve un caractère autre que "h".                                                                                                                                                                           |        |
++--------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+--------+
+| `\\+`        | Un opérateur mathématique, tout simplement                                                                                                                                                                                                        | Les barres diagonales "échappent" le symbole mathématique.                                                                                                                                                                                                                                                            |        |
++--------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+--------+
+| `^`          | Marque le début d'une chaîne de caractères. \| Supposons que nous ayons 1000 phrases et que nous souhaitions saisir seulement celles commençant par le pronom "Elle". On pourra utiliser une fonction de recherche avec, comme motif, `^Elle`. \| |                                                                                                                                                                                                                                                                                                                       |        |
++--------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+--------+
+| `$`          | Marque la fin d'une chaîne de caractères. \| À l'inverse de l'exemple précédent, `elle$` saisira les documents qui se **terminent** par "elle". \|                                                                                                |                                                                                                                                                                                                                                                                                                                       |        |
++--------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+--------+
+| `[ ]`        | Tout caractère, ponctuation ou symbole qui se trouve à l'intérieur, y compris l'espace ou la tabulation, une seule fois.                                                                                                                          | L'expression `Montr[ée]al` saisira à la fois "Montréal" et "Montreal".                                                                                                                                                                                                                                                |        |
++--------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+--------+
+
+```{r exemple simple}
+# Exemple simple d'une expression régulière qui saisit et retourne tous les mots commençant par une majuscule. 
+
+texte <- "Victor Hugo, Emile Zola, et Jean-Paul Sartre sont des écrivains célèbres." 
+
+pattern <- "\\b[A-Z][a-z]+\\b"
+
+# \\b ==> balise de mot
+# [A-Z] ==> n'importe quelle lettre majuscule non accentuée au début du mot
+# [a-z]+ ==> n'importe quelle séquence de lettres non accentuée
+# \\ ==> balise de mot
+
+str_extract_all(texte, pattern) |> unlist()
+
+```
+
+# Groupes de capture
+
+Il existe d'autres symboles et quantifieurs que vous découvrirez à l'usage, mais une introduction aux expressions régulières serait incomplète si elle ne comprenait également une présentation des groupes de capture (*group constructs*). Ces constructions permettent de regrouper des parties d’une expression régulière pour diverses opérations, comme la capture de sous-chaînes.
+
++--------------+---------------------------------------------------------------------------------------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| Expression   | Description                                                                                                                                 | Exemple                                                                                                                                                                                                                                            |
++==============+=============================================================================================================================================+====================================================================================================================================================================================================================================================+
+| `(?=motif)`  | Assertion d'anticipation positive (*positive lookahead*)                                                                                    | Soit la phrase: “Simone de Beauvoir a écrit Le Deuxième sexe (1949). Le Deuxième sexe est un essai philosophique de de Beauvoir.” L’expression Le Deuxième sexe(?=\\s\\(\\d{1,4}\\)) saisira la première occurrence du titre, mais non la seconde. |
++--------------+---------------------------------------------------------------------------------------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| `(?<=motif)` | Assertion de rétrovision (*positive lookbehind*). Vérifie qu'un motif précède une chaine qu'on souhaite saisir.                             | Dans l'exemple précédent, l'expression `(?<=Beauvoir a écrit )Le Deuxième sexe` saisira la première occurrence du titre, mais non la seconde.                                                                                                      |
++--------------+---------------------------------------------------------------------------------------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| `(?!motif)`  | Assertion d'anticipation négative (*negative lookahead*). Vérifie qu'un certain motif ne suit pas un autre motif qu'on souhaite manipuler.  | Le motif `Victor(?!\sHugo)` saisira la deuxième occurrence de "Victor", mais non la première.                                                                                                                                                      |
++--------------+---------------------------------------------------------------------------------------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| `(?<!motif)` | Assertion de rétrovision négative (*negative lookbehind*). Vérifie qu'un certain motif ne précède pas un autre motif qu'on souhaite saisir. | Soit la séquence suivante: "Victor Hugo est un écrivain. Hugo s'intéresse aussi à la politique."                                                                                                                                                   |
+|              |                                                                                                                                             |                                                                                                                                                                                                                                                    |
+|              |                                                                                                                                             | Le motif `(?<!Victor\s)Hugo` saisira la deuxième occurence de "Hugo", mais non la première.                                                                                                                                                        |
++--------------+---------------------------------------------------------------------------------------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+|              |                                                                                                                                             |                                                                                                                                                                                                                                                    |
++--------------+---------------------------------------------------------------------------------------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+|              |                                                                                                                                             |                                                                                                                                                                                                                                                    |
++--------------+---------------------------------------------------------------------------------------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+
+# Exemple de prétraitement avec expressions régulières
+
+Dans l'exemple ci-dessous, nous allons voir à quoi pourrait ressembler le prétraitement d'un texte littéraire à l'aide d'expressions régulières. Les principales étapes du traitement sont les suivantes:
+
+1.  Importation dans l'environnement de travail du roman *Maria Chapdelaine*, de Louis Hémon. Le texte importé provient du site [Projet Gutenberg](https://www.gutenberg.org/ebooks/13525).
+2.  Élimination du péritexte (Notes du Projet Gutenberg, titre du roman, nom de l'auteur, etc.);
+3.  Traitement préalable aux calculs statistiques (élimination de la ponctuation et des symboles, transformation de toutes les majuscules en minuscules);
+4.  Transposition du texte brut et traité dans un tableau de données (dataframe) où chaque ligne correspond à un chapitre et chaque colonne, à une variable (numéro du chapitre, mots du chapitre, nombre total de mots)
+5.  Création de trois nouvelles colonnes portant chacune le nom d'un prétendant, et indication du nombre de fois que chaque prétendant est nommé dans chacun des chapitres.
+
+En exécutant ou en parcourant le code, essayez de voir où sont utilisés des motifs (expressions régulières).
+
+```{r exemple de prétraitement}
+#| output: true
+
+# Importation du texte du roman
+maria <- gutenberg_download(13525, mirror = "http://mirror.csclub.uwaterloo.ca/gutenberg/")
+
+# Transformation de l'encodage des chaînes de caractères du vecteur `text`
+maria$text <- iconv(maria$text, from = "latin1", "utf8")
+
+# Élimination des lignes blanches
+maria <- maria[maria$text != "",]
+
+# Élimination du péritexte
+maria <- maria[grep("CHAPITRE I\\b", maria$text):nrow(maria),]
+
+# Repérage de la ligne correspondant à chaque début de chapitre
+debut_chapitres_v <- which(grepl("CHAPITRE", maria$text))
+
+# Utilisation du vecteur précédent pour indiquer la ligne correspondant à la fin de chaque chapitre
+fin_chapitres_v <-
+  append((debut_chapitres_v[-1] - 1), length(maria$text))
+
+# Création d'une petite fonction permettant la séparation des mots d'une chaîne de caractères (tokénisation)
+tokenisation_fun <- 
+  function(texte, debut_chapitre, fin_chapitre) {
+  texte_v <- texte[as.integer(debut_chapitre):as.integer(fin_chapitre)]
+  mots_l <- strsplit(texte_v, "\\W")    # séparation de tous les mots
+  mots_v <- unlist(mots_l)              # transformation de l'objet liste en vecteur
+  mots_v <- tolower(mots_v)             # Bas de casse
+  mots_pleins_v <- which(mots_v != "")  # Identificatioon des éléments vides
+  mots_v <- mots_v[mots_pleins_v]       # Élimination des éléments vides
+  mots_v <- mots_v[-c(1:2)]             # Élimination des noms de chapitre
+  return(mots_v)                        # Renvoi explicite de l'objet vecteur
+}
+
+# Création d'une liste vide pour, ensuite, emmagasiner les mots de chacun des chapitres
+mots_chapitres_l <-
+  vector(mode = "list", length = length(debut_chapitres_v))
+
+# On remplit notre objet liste avec les mots de chacun des chapitre
+for (i in seq_along(debut_chapitres_v)) {
+  mots_chapitres_l[[i]] <- tokenisation_fun(
+    texte = maria$text,
+    debut_chapitre = (debut_chapitres_v[i]),
+    fin_chapitre = fin_chapitres_v[i]
+  )
+}
+
+# On crée un nouveau tableau de données comprenant une colonne pour les numéros de chapitres:
+mots_chapitres_df <-
+  data.frame(
+    chapitre = c(
+      "I",
+      "II",
+      "III",
+      "IV",
+      "V",
+      "VI",
+      "VII",
+      "VIII",
+      "IX",
+      "X",
+      "XI",
+      "XII",
+      "XIII",
+      "XIV",
+      "XV",
+      "XVI"
+    )
+  )
+
+# ... une colonne où seront rassemblés tous les mots sous forme de liste:
+mots_chapitres_df$mots <- sapply(mots_chapitres_l, "[")
+
+# Et une colonne indiquant le nombre de mots de chaque chapitre
+mots_chapitres_df$longueur_chap <- sapply(mots_chapitres_l, length)
+
+# Création d'une colonne avec tous les mots de chaque chapitre distinct joints en une seule chaine de caractères
+mots_chapitres_df$texte <-
+  sapply(mots_chapitres_df$mots, paste, collapse = " ")
+
+
+# On crée trois colonnes, une pour chacun des prénoms des prétendants de Maria, et nous allons indiquer dans ces colonnes le nombre de fois que chaque prétendant est nommé:
+
+mots_chapitres_df$francois <-
+  str_count(mots_chapitres_df$texte, pattern = "fran[cç]ois")
+
+mots_chapitres_df$lorenzo <-
+  str_count(mots_chapitres_df$texte, pattern = "lorenzo")
+
+mots_chapitres_df$eutrope <-
+  str_count(mots_chapitres_df$texte, pattern = "eutrope")
+
+# On peut visualiser la structure de données (sans le texte complet, pour éviter la surcharge)
+mots_chapitres_df[, c("chapitre", "longueur_chap", "francois", "lorenzo", "eutrope")]
+
+```
+
+# Pratique
+
+Le code ci-dessous permet d'extraire les 2000 premiers caractères du roman Maria Chapdelaine, importé et prétraité au début du document. Copier ce texte et coller-le dans la fenêtre d'un site permettant de tester les expressions régulières, tel [regex101](https://regex101.com/).
+
+```{r}
+substr(mots_chapitres_df$texte[1], 1, 2000)
+
+```
+
+Fabriquez des expressions qui permettront de saisir:
+
+1.  Le déterminant "un";
+2.  Le mot "église" non suivi de "de bois".
+
+# Utiliser les LLMs génératifs comme assistant
+
+Au cours de leur entraînement, les LLMs génératifs ont été exposés aux expressions régulières et ils peuvent donc servir d'assistants dans l'élaboration d'expressions ou dans l'explication d'expressions existantes. L'invite ci-dessous, formulée selon le modèle d'optimisation COSTAR, pourrait être adaptée à plusieurs cas de figure.
+
+> \# CONTEXT
+>
+> Tu es un expert dans la recherche d'information et l'extraction de chaines de caractères à l'aide d'expressions régulières (regex)
+>
+> \# OBJECTIVE
+>
+> Je souhaite que tu m'assistes dans l'élaboration d'expressions régulières. L'objectif est de remplacer toutes les occurrences du mot 'église' par 'ÉGLISE', à moins que ce mot ne soit écrit au pluriel.
+>
+> \# STYLE
+>
+> Le style doit être méthodique et pédagogique.
+>
+> \# TONE
+>
+> Le ton doit être neutre et bienveillant.
+>
+> \# AUDIENCE
+>
+> Tu assistes un spécialiste de littérature sans connaissance approfondie des expressions régulières.
+>
+> \# RESPONSE
+>
+> La réponse doit être fournie sous la forme d'une expression régulière dont chaque partie sera expliquée clairement. Le format est un texte suivi.
+
+Voici maintenant la réponse offerte à l'invite par GPT-4o. Elle présente un très bon point de départ pour exécuter l'opération.
+
+> Pour atteindre ton objectif, nous allons élaborer une expression régulière (regex) qui permettra de remplacer le mot "église" par "ÉGLISE", mais sans modifier les occurrences du mot lorsqu'il est au pluriel ("églises").
+>
+> Voici l'expression régulière que nous allons construire :
+>
+> ```         
+> \béglise\b(?!s)
+> ```
+>
+> Maintenant, décomposons cette expression pour bien comprendre comment elle fonctionne :
+>
+> 1.  **`\b`** : Il s'agit d'une "limite de mot". Cet élément permet de garantir que nous traitons uniquement des occurrences complètes du mot "église" et non des parties de mots plus grands. Par exemple, sans cette limite, un mot comme "réglisse" pourrait être partiellement modifié. La limite de mot assure que l'expression est appliquée uniquement à un mot isolé.
+>
+>     -   Le premier **`\b`** avant "église" assure que le mot commence à cet endroit (et non au milieu d'un autre mot).
+>     -   Le second **`\b`** après "église" assure que le mot se termine ici.
+>
+> 2.  **`église`** : C'est simplement le mot que nous cherchons à modifier. L'expression va repérer chaque occurrence du mot "église" écrit au singulier ou au pluriel.
+>
+> 3.  **`(?!s)`** : Ceci est une "assertion négative", appelée **lookahead négatif**. Cela signifie que l'expression ne correspondra pas si le mot "église" est immédiatement suivi d'un "s". En d'autres termes, cela permet de s'assurer que nous ne sélectionnons que le mot "église" lorsqu'il n'est pas suivi par un "s", ce qui exclut les formes plurielles.
+>
+>     -   **`?!`** signifie que l'expression vérifie ce qui suit "église" sans inclure ces caractères dans la sélection.
+>     -   **`s`** est le caractère que nous cherchons à éviter (le "s" du pluriel).
+>
+> ### Exemple d'utilisation
+>
+> -   **Texte d'origine** : "L'église du village et les églises de la ville sont anciennes."
+> -   **Texte modifié** : "L'ÉGLISE du village et les églises de la ville sont anciennes."
+>
+> Dans cet exemple, la regex a remplacé "église" par "ÉGLISE" pour le mot singulier, mais a laissé "églises" (pluriel) intact.
+>
+> ### Utilisation pratique
+>
+> Tu peux utiliser cette expression dans des outils ou langages de programmation qui supportent les expressions régulières (Python, R, Notepad++, etc.) pour effectuer ce remplacement de manière automatisée.
+>
+> Si tu as des questions ou si tu veux explorer des variantes, n'hésite pas à demander !
+
+OpenAI, ChatGPT-4o, version du 21 septembre 2024.
+
+Voyons maintenant comment cela pourrait être fait avec R:
+
+```{r}
+phrase_a_corriger <- "Dans la petite ville, l’egliste se trouve en face de l’églize principale, qui, selon les habitants, est la plus ancienne eglise du quartier, bien que certains disent que l’eglise a été reconstruite plusieurs fois, car chaque eglise qu’ils ont connue était différente, ce qui rend l’histoire de l’eglisse assez mystérieuse pour ceux qui cherchent à comprendre comment l’egliste a pu résister à toutes ces années d’intempéries, malgré les rumeurs disant que l’eglize est en réalité bien plus récente que ce que les archives indiquent." #(OpenAI, ChatGPT-4o, version du 21 septembre 2024.)
+
+str_replace_all(phrase_a_corriger, pattern = "\\b[eé]gli\\w+", replacement = "église")
+
+
+```
+
+# Conclusion
+
+Cette rapide introduction aux expressions régulières donne une faible idée de leur intérêt dans l'exploration et la manipulation des textes. Nul besoin d'être un·e expert·e en programmation pour y recourir: une connaissance des principes et des opérateurs de base suffit pour commencer à fabriquer ses premières expressions. Celles-ci pourront être rapidement mises à l'épreuve dans des éditeurs interactifs en ligne.
+
+La principale force des expressions régulières est de pouvoir se modeler de manière très précise aux besoins des chercheuses et chercheurs. Elles ont certes leurs limites et ne peuvent par exemple saisir, dans un texte, que les chaînes de caractères auxquels leur concepteur ou conceptrice aura tout d'abord pensé. Elles supposent donc, de leur part, une très bonne connaissance préalable des textes qui font l'objet d'une fouille et des chaînes de caractères à saisir. Pour envisager tous les cas de figure, on privilégiera le travail en équipe. L'IA générative pourra également être utile pour soutenir, sans la remplacer, la créativité des chercheur·euse·s.
+
+# Bibliographie
+
+Jockers, Matthew L. *Text Analysis with R for Students of Literature*. Quantitative Methods in the Humanities and Social Sciences. Springer International Publishing, 2014. <https://doi.org/10.1007/978-3-319-03164-4>.
+
+Hart, Michael S. « Gutenberg Project », https://www.gutenberg.org/. (Consulté le 21 septembre 2024.)
+
+« Library Carpentry: Introduction to Working with Data (Regular Expressions): Regular Expressions ». <https://librarycarpentry.org/lc-data-intro/01-regular-expressions>. (Consulté le 20 septembre 2024.)
+
+Taulli, Tom. *Regex with ChatGPT*. \[First edition\]. \[Sebastopol, California\]: O’Reilly Media, Inc., 2024. <https://www.oreilly.com/library/view/-/0642572059316/.>
+
+Yarberry, William. *CRAN Recipes : DPLYR, Stringr, Lubridate, and RegEx in R*. Berkeley, CA: Apress, 2021. <https://doi.org/10.1007/978-1-4842-6876-6.>
+
+# Modules R
+
+Johnston, Myfanwy, et David Robinson. gutenbergr: Download and Process Public Domain Works from Project Gutenberg. 0.2.4, 12 novembre 2023. R-Packages, https://cloud.r-project.org/web/packages/gutenbergr/index.html.
+
+Wickham, Hadley, et al. stringr: Simple, Consistent Wrappers for Common String Operations. 1.5.1, 14 novembre 2023. R-Packages, https://cran.r-project.org/web/packages/stringr/index.html.
